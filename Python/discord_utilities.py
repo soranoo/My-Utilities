@@ -1,11 +1,11 @@
-from smart_import import try_import
+from .smart_import import try_import
 try_import("requests")
 try_import("discord", pip_package_name="discord.py")
 
 import requests
 import json
 from discord.embeds import Embed as OrginalEmbed
-from network import send_post_request
+from .network import send_post_request
 
 class Embed(OrginalEmbed):
     class Color:
