@@ -1,0 +1,7 @@
+config.toml
+start-env.py
+**/env
+**/logs
+**/src/__pycache__
+*.pyc
+*.sqlite3
