@@ -8,7 +8,8 @@ from requests.adapters import HTTPAdapter, Retry
 URL_REGEX = r"^https?:\/\/((?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b)(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$"
 POST_REQUEST_HEADERS = {
         "Content-Type": "application/json; charset=utf-8",
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11"
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11",
+        "Connection": "close",
     }
 
 # increase retries number
@@ -40,14 +41,16 @@ def extract_url_domain(url:str) -> bool or str:
     """
     return m[1] if (m := re.search(URL_REGEX, url)) else None
 
-def send_post_request(url:str, payload:str or dict, headers:dict = None) -> requests.models.Response:
+def send_request(method:str, url:str, payload:str or dict, headers:dict = None) -> requests.models.Response:
     """
     ### Description ###
-    Send HTTP POST request
+    Send HTTP(S) request
 
     ### Parameters ###
+        - `method` (str): HTTP method, eg. GET, POST, PUT, DELETE
         - `url` (str): URL
         - `payload` (str or dict): Payload
+        - `headers` (dict): Headers
 
     ### Returns ###
         - (requests.models.Response): Response
@@ -67,7 +70,8 @@ def send_post_request(url:str, payload:str or dict, headers:dict = None) -> requ
     # add adapter to session
     session.mount('http://', adapter)
     session.mount('https://', adapter)
-    return session.post(
+    return session.request(
+        method,
         url,
         data=payload,
         headers=POST_REQUEST_HEADERS if headers is None else headers,
