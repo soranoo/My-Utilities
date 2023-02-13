@@ -7,23 +7,21 @@ from . import log
 class TaskBalancer:
     def __init__(self, worker_num):
         self.worker_num = worker_num
-        self.queue = Queue()
         self.workers = []
         self._start_workers()
         self.monitor_thread = threading.Thread(target=self._monitor_workers)
         self.monitor_thread.start()
 
     def _start_workers(self):
-        for i in range(self.worker_num):
-            worker = threading.Thread(target=self._process_tasks)
+        for _ in range(self.worker_num):
+            queue = Queue()
+            worker = threading.Thread(target=self._process_tasks, args=(queue,))
             worker.start()
-            self.workers.append(worker)
-            if i%2 == 0:
-                time.sleep(0.1)
+            self.workers.append((worker, queue))
 
-    def _process_tasks(self):
+    def _process_tasks(self, queue):
         while True:
-            task = self.queue.get()
+            task = queue.get()
             for _ in range(5):
                 try:
                     task()
@@ -33,19 +31,28 @@ class TaskBalancer:
                     time.sleep(3)
                     continue
                 finally:
-                    self.queue.task_done()
+                    queue.task_done()
+                    break
 
     def _monitor_workers(self):
         while True:
-            for worker in self.workers:
+            for worker, queue in self.workers:
                 if not worker.is_alive():
-                    self.workers.remove(worker)
+                    self.workers.remove((worker, queue))
                     log.error(f"Task balancer's worker {worker.name} has failed, starting a new worker")
                     self._start_workers()
             time.sleep(5)
 
     def add_task(self, task):
-        self.queue.put(task)
-        
-    def get_current_queue_size(self):
-        return self.queue.qsize()
+        min_queue = min(self.workers, key=lambda x: x[1].qsize())[1]
+        min_queue.put(task)
+
+    def get_loading(self):
+        return [(worker.name, queue.qsize()) for worker, queue in self.workers]
+    
+    def get_worker_num(self):
+        return len(self.workers)
+    
+    def get_queue_size(self):
+        return sum(queue.qsize() for worker, queue in self.workers)
+
